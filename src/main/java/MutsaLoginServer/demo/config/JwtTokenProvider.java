@@ -1,49 +1,60 @@
 package MutsaLoginServer.demo.config;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
-    // 테스트용 보안키 (최소 32바이트 이상 문자열 권장)
-    private final String secret = "mutsa-secret-key-for-session-2026-05-04";
-    private final SecretKey key = Keys.hmacShaKeyFor(secret.getBytes());
 
-    // 토큰 유효 시간 (1시간)
-    private final long validityInMilliseconds = 3600000;
+    @Value("${jwt.secret}")
+    private String secretKey;
 
-    // 토큰 생성 기능
-    public String createToken(String username) {
+    private final long accessTokenValidTime = 30 * 60 * 1000L; // 30분
+    private final long refreshTokenValidTime = 14 * 24 * 60 * 60 * 1000L; // 14일
+
+    @PostConstruct
+    protected void init() {
+        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
+    }
+
+    // 엑세스 토큰을 생성하는 기능
+    public String createAccessToken(String email) {
+        return createToken(email, accessTokenValidTime);
+    }
+
+    // 리프레시 토큰을 생성하는 기능
+    public String createRefreshToken(String email) {
+        return createToken(email, refreshTokenValidTime);
+    }
+
+    private String createToken(String email, long validTime) {
+        Claims claims = Jwts.claims().setSubject(email);
         Date now = new Date();
-        Date validity = new Date(now.getTime() + validityInMilliseconds);
 
         return Jwts.builder()
-                .setSubject(username) // 담을 정보 (유저 아이디)
-                .setIssuedAt(now)     // 발급 시간
-                .setExpiration(validity) // 만료 시간
-                .signWith(key, SignatureAlgorithm.HS256) // 암호화 알고리즘
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + validTime))
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
 
-    // 토큰에서 아이디 추출
-    public String getUsername(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+    // 토큰에서 사용자 이메일을 추출하는 기능
+    public String getEmail(String token) {
+        return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject();
     }
 
-    // 토큰 유효성 검증
+    // 토큰의 유효성 및 만료 여부를 확인하는 기능
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             return false;

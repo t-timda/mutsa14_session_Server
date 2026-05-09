@@ -25,7 +25,6 @@ public class SecurityConfig {
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
-        // 비밀번호 암호화 도구 등록
         return new BCryptPasswordEncoder();
     }
 
@@ -37,7 +36,6 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Swagger 관련 URL 접근을 허용하는 기능
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
@@ -46,29 +44,18 @@ public class SecurityConfig {
 
         return http.build();
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // 허용할 프론트엔드 주소 목록
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:5173"
-        ));
-
-        // 허용할 HTTP 메서드
+        // 프론트엔드 로컬 개발 환경의 접근을 허용하는 기능
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        // 허용할 헤더 (Authorization 헤더가 반드시 포함되어야 함)
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-
-        // 자격 증명 허용 (쿠키 등을 사용할 경우 필요)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // 모든 경로에 대해 위 설정 적용
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 }

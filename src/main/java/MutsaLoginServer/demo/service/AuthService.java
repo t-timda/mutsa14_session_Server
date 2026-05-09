@@ -1,50 +1,51 @@
 package MutsaLoginServer.demo.service;
 
-import MutsaLoginServer.demo.config.JwtTokenProvider;
 import MutsaLoginServer.demo.entity.User;
+import MutsaLoginServer.demo.dto.LoginRequest;
+import MutsaLoginServer.demo.dto.SignupRequest;
+import MutsaLoginServer.demo.dto.TokenResponse;
+import MutsaLoginServer.demo.config.JwtTokenProvider;
 import MutsaLoginServer.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    // JWT 발급 도구 주입 (별도 구현 필요)
     private final JwtTokenProvider jwtTokenProvider;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    // 회원가입 로직
     @Transactional
-    public void signup(String username, String password) {
-        // 중복 아이디 확인
-        if (userRepository.findByUsername(username).isPresent()) {
-            throw new IllegalArgumentException("이미 존재하는 아이디");
-        }
-
-        // 유저 생성 및 암호화 저장
+    public void signup(SignupRequest request) {
         User user = User.builder()
-                .username(username)
-                .password(passwordEncoder.encode(password)) // 비밀번호 암호화
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .build();
-
         userRepository.save(user);
     }
 
-    // 로그인 로직
-    public String login(String username, String password) {
-        // 사용자 확인
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저"));
+    @Transactional
+    public TokenResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
-        // 비밀번호 검증
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호 불일치");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("잘못된 비밀번호입니다.");
         }
 
-        // 토큰 생성 및 반환
-        return jwtTokenProvider.createToken(username);
+        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+        // 생성된 리프레시 토큰을 사용자의 DB 정보에 저장하는 기능
+        user.updateRefreshToken(refreshToken);
+
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }

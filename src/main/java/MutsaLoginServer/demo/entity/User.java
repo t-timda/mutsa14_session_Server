@@ -1,27 +1,38 @@
 package MutsaLoginServer.demo.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@NoArgsConstructor
-@Table(name = "users") // 테이블 이름을 예약어인 'user' 대신 'users'로 지정
+@Table(name = "users")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
-    private String username;
+    @Column(nullable = false, unique = true)
+    private String email;
 
+    @Column(nullable = false)
     private String password;
 
+    @Column
+    private String refreshToken;
+
     @Builder
-    public User(String username, String password) {
-        this.username = username;
+    public User(String email, String password) {
+        this.email = email;
         this.password = password;
+    }
+
+    // 리프레시 토큰 정보를 업데이트하는 기능
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }

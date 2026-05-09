@@ -6,13 +6,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/mypage")
+@RequestMapping("/api")
 public class MyPageController {
 
-    @GetMapping
-    public String getMyPage(Authentication authentication) {
-        // 토큰 인증 성공 시 호출되는 기능
-        // authentication.getName()을 통해 로그인한 아이디 확인 가능
-        return "환영합니다! " + authentication.getName() + "님의 마이페이지 접근에 성공했습니다.";
+    @GetMapping("/mypage")
+    public String myPage(Authentication authentication) {
+        return authentication.getName() + "님, 환영합니다!";
     }
 }
