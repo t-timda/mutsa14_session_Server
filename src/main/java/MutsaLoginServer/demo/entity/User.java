@@ -22,6 +22,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    // 리프레시 토큰을 저장하기 위한 컬럼
     @Column
     private String refreshToken;
 
@@ -31,7 +32,7 @@ public class User {
         this.password = password;
     }
 
-    // 리프레시 토큰 정보를 업데이트하는 기능
+    // 리프레시 토큰을 새로운 토큰으로 갱신하는 기능
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }

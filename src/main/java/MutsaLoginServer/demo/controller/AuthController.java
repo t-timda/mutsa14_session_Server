@@ -24,4 +24,10 @@ public class AuthController {
     public TokenResponse login(@RequestBody LoginRequest request) {
         return authService.login(request);
     }
+
+    // 리프레시 토큰을 전달받아 새로운 토큰 세트를 반환하는 엔드포인트 기능
+    @PostMapping("/reissue")
+    public TokenResponse reissue(@RequestBody String refreshToken) {
+        return authService.reissue(refreshToken);
+    }
 }

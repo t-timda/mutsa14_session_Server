@@ -40,12 +40,42 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getEmail());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
 
-        // 생성된 리프레시 토큰을 사용자의 DB 정보에 저장하는 기능
+        // 로그인 시 리프레시 토큰을 DB에 업데이트하는 기능
         user.updateRefreshToken(refreshToken);
 
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .build();
+    }
+
+    // 리프레시 토큰을 검증하고 엑세스/리프레시 토큰을 재발급하는 기능
+    @Transactional
+    public TokenResponse reissue(String refreshToken) {
+        // 토큰의 서명 및 만료 여부를 우선 확인하는 기능
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.");
+        }
+
+        String email = jwtTokenProvider.getEmail(refreshToken);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // DB에 저장된 토큰과 일치하는지 대조하여 보안을 강화하는 기능
+        if (user.getRefreshToken() == null || !user.getRefreshToken().equals(refreshToken)) {
+            throw new IllegalArgumentException("토큰 정보가 일치하지 않습니다. 다시 로그인해주세요.");
+        }
+
+        // 새로운 토큰 한 쌍을 생성하는 기능 (RTR 방식)
+        String newAccessToken = jwtTokenProvider.createAccessToken(user.getEmail());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+        // 새 리프레시 토큰을 DB에 갱신하여 이전 토큰을 무효화하는 기능
+        user.updateRefreshToken(newRefreshToken);
+
+        return TokenResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
                 .build();
     }
 }
