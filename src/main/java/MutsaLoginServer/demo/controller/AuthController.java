@@ -5,6 +5,8 @@ import MutsaLoginServer.demo.dto.SignupRequest;
 import MutsaLoginServer.demo.dto.TokenResponse;
 import MutsaLoginServer.demo.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,5 +45,10 @@ public class AuthController {
             return "로그아웃 성공";
         }
         return "로그인 상태가 아닙니다.";
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }
